@@ -15,40 +15,35 @@ namespace llvm {
 	    checked = new ValueMap<BasicBlock*, bool>();
 	}
 
-	void Dataflow::forwardPass(BBList &bbs){
-	    BasicBlock *curr = *bbs.begin();
-	    bbs.pop_front();
-	    (*checked)[curr] = true;
-	    int predecessors = 0;
+	/// Get the number of predecessors of \p BB. This is a linear time operation.
+	/// Use \ref BasicBlock::hasNPredecessors() or hasNPredecessorsOrMore if able.
+	inline unsigned pred_size(const BasicBlock *BB) {
+		return std::distance(pred_begin(BB), pred_end(BB));
+	}
 
-	    pred_iterator start_p = pred_begin(curr), end_p = pred_end(curr);
-	    while (start_p != end_p) {
-	    	predecessors++;
-	    	if (start_p != pred_begin(curr)) {
-	    		meetOp((*in)[curr], (*out)[*start_p]);
-	    	} else {
-	    		*(*in)[curr] = *(*out)[*start_p];
+	void Dataflow::forwardPass(BBList &bbsWorkList){
+	    BasicBlock *currBB = bbsWorkList.front();
+	    bbsWorkList.pop_front();
+	    (*checked)[currBB] = true;
+
+	    if (pred_size(currBB) == 0) {
+	    	// entry block
+	    	boundaryCond((*in)[currBB]);
+	    } else {
+		    for (BasicBlock* pred : predecessors(currBB)) {
+		    	// meet over every pred
+	    		meetOp((*in)[currBB], (*out)[pred]);
+			}
+	    }
+
+	    (*out)[currBB] = transferFunction(*currBB);
+
+	    for (BasicBlock* successor : successors(currBB)) {
+	    	if ((*checked)[successor]) {
+	    		bbsWorkList.push_back(successor);
 	    	}
 	    }
 
-	    if (predecessors == 0) {
-	    	boundaryCond((*in)[curr]);
-	    }
-
-
-	    BitVector *updatedSet = transferFunction(*curr);
-
-	    if (*updatedSet != *(*out)[curr]) {
-	    	*(*out)[curr] = *updatedSet;
-	    }
-
-	    succ_iterator start_s = succ_begin(curr), end_s = succ_end(curr);
-	    while (start_s != end_s) {
-	    	if ((*checked)[*start_s]) {
-	    		bbs.push_back(*start_s);
-	    	}
-	    	start_s++;
-	    }
 	}
 
 	void Dataflow::backwardPass(BBList &bbs){
