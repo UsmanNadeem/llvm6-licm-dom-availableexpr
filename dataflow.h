@@ -40,7 +40,7 @@ namespace llvm {
         protected:
             virtual void boundaryCond(BitVector*) = 0;
             virtual void meetOp(BitVector* lhs, const BitVector* rhs) = 0;
-            virtual BitVector* initBitVectors(BasicBlock& b) = 0;
+            virtual void initBitVectors(BasicBlock* b) = 0;
             virtual BitVector* transferFunction(BasicBlock& b) = 0;
     };
 }

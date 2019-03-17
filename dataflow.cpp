@@ -91,8 +91,10 @@ namespace llvm {
 	    Function::iterator i = F.begin();
 		while (i != F.end()) {
 			BasicBlock *b = &(*i);
-			(*in)[b] = initBitVectors(*i);
-			(*out)[b] = initBitVectors(*i);
+			checked[b] = false;
+			initBitVectors(b);
+			// (*in)[b] = initBitVectors(*i);
+			// (*out)[b] = initBitVectors(*i);
 			i++;
 		}
 
