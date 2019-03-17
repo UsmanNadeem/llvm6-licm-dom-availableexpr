@@ -29,11 +29,13 @@ namespace llvm {
         public:
             DomainMapping *in;
             DomainMapping *out;
+            DomainMapping *gen;
+            DomainMapping *kill;
             DomainMapping *neighbors;
             ValueMap<BasicBlock*, bool> *checked;
 
             Dataflow(int direction);                
-            void forwardPass(BBList &w);
+            bool forwardPass(BBList &w);
             void backwardPass(BBList &w);
             void runOnFunction(Function &F);
 
@@ -41,7 +43,7 @@ namespace llvm {
             virtual void boundaryCond(BitVector*) = 0;
             virtual void meetOp(BitVector* lhs, const BitVector* rhs) = 0;
             virtual void initBitVectors(BasicBlock* b) = 0;
-            virtual BitVector* transferFunction(BasicBlock& b) = 0;
+            virtual BitVector transferFunction(BasicBlock* b) = 0;
     };
 }
 
