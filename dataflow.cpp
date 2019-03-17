@@ -4,6 +4,7 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 #include "dataflow.h"
+#include <iostream>
 
 namespace llvm {
 
@@ -11,19 +12,23 @@ namespace llvm {
 	    this->direction = dir;  
 	    in  = new DomainMapping();
 	    out = new DomainMapping();
+	    gen = new DomainMapping();
+	    kill = new DomainMapping();
 	    neighbors = new DomainMapping();
 	    checked = new ValueMap<BasicBlock*, bool>();
 	}
 
-	/// Get the number of predecessors of \p BB. This is a linear time operation.
-	/// Use \ref BasicBlock::hasNPredecessors() or hasNPredecessorsOrMore if able.
+	// /// Get the number of predecessors of \p BB. This is a linear time operation.
+	// /// Use \ref BasicBlock::hasNPredecessors() or hasNPredecessorsOrMore if able.
+	// code taken from newer version of llvm
 	inline unsigned pred_size(const BasicBlock *BB) {
 		return std::distance(pred_begin(BB), pred_end(BB));
 	}
 
-	void Dataflow::forwardPass(BBList &bbsWorkList){
+	bool Dataflow::forwardPass(BBList &bbsWorkList){
 	    BasicBlock *currBB = bbsWorkList.front();
 	    bbsWorkList.pop_front();
+	    bool changesMade = false;
 	    (*checked)[currBB] = true;
 
 	    if (pred_size(currBB) == 0) {
@@ -36,14 +41,19 @@ namespace llvm {
 			}
 	    }
 
-	    (*out)[currBB] = transferFunction(*currBB);
+	    BitVector newOutSet = transferFunction(currBB);
+	    if (newOutSet != *((*out)[currBB])) {
+	    	*((*out)[currBB]) = newOutSet;
+	    	changesMade = true;
+	    }
+	     
 
 	    for (BasicBlock* successor : successors(currBB)) {
-	    	if ((*checked)[successor]) {
+	    	if ((*checked)[successor] == false) {
 	    		bbsWorkList.push_back(successor);
 	    	}
 	    }
-
+	    return changesMade;
 	}
 
 	void Dataflow::backwardPass(BBList &bbs){
@@ -71,10 +81,10 @@ namespace llvm {
 	    	boundaryCond((*out)[curr]); 
 	    }
 
-	    BitVector *updatedInSet = transferFunction(*curr);
+	    BitVector updatedInSet = transferFunction(curr);
 
-	    if (((*updatedInSet) != (*(*in)[curr]))) {
-	        *(*in)[curr] = *updatedInSet;
+	    if ((updatedInSet != (*(*in)[curr]))) {
+	        *(*in)[curr] = updatedInSet;
 	    }
         
         pred_iterator start_p = pred_begin(curr), end_p = pred_end(curr);
@@ -91,7 +101,6 @@ namespace llvm {
 	    Function::iterator i = F.begin();
 		while (i != F.end()) {
 			BasicBlock *b = &(*i);
-			checked[b] = false;
 			initBitVectors(b);
 			// (*in)[b] = initBitVectors(*i);
 			// (*out)[b] = initBitVectors(*i);
@@ -116,15 +125,31 @@ namespace llvm {
 	    		start_f++;
 	    	}
 	    } else if (direction == 1) { // 1 = Forward
-	    	BasicBlock &entryBlock = F.getEntryBlock();
-	    	bbs->push_back(&entryBlock);
+
+	    	// iterate until the algo has converged
+		    bool changesMade = false;
+		    do {
+		    	// reset the visited marker
+		    	for (BasicBlock& b : F) {
+					(*checked)[&b] = false;
+		    	}
+			    changesMade = false;
+		    	BasicBlock &entryBlock = F.getEntryBlock();
+		    	bbs->push_back(&entryBlock);
+
+		    	// forwardPass for all BBs in CFG
+			    while (!bbs->empty()) {
+		            changesMade = forwardPass(*bbs) ? true : changesMade;
+			    }
+		    } while (changesMade == true);
+
+		    return; // dont know what the code below is for!!
+		    // /////*********FORWARD PASS ENDS HERE*************
 	    }
 
 	    while (!bbs->empty()) {
 	        if (direction == 0) {
 	            backwardPass(*bbs);
-	        } else if (direction == 1) {
-	            forwardPass(*bbs);
 	        }
 	    }
 
