@@ -20,6 +20,29 @@ namespace llvm {
     }
   }
 
+  Expression::Expression (const Expression& e) {
+    this->v1 = e.v1;
+    this->v2 = e.v2;
+    this->op = e.op;
+  }
+
+  Expression& Expression::operator = (const Expression &e) {
+    this->v1 = e.v1;
+    this->v2 = e.v2;
+    this->op = e.op;    
+  }
+
+
+  bool Expression::uses(const Value* v) const {
+    if (BinaryOperator * BI = dyn_cast<BinaryOperator>(this->v1)) {
+      if (getShortValueName(BI) == getShortValueName(v)) return true;
+    }
+    if (BinaryOperator * BI = dyn_cast<BinaryOperator>(this->v2)) {
+      if (getShortValueName(BI) == getShortValueName(v)) return true;
+    }
+    return false;
+  }
+
   // For two expressions to be equal, they must
   // have the same operation and operands.
   bool Expression::operator== (const Expression &e2) const {
@@ -74,11 +97,11 @@ namespace llvm {
 
   // Silly code to print out a set of expressions in a nice
   // format
-  void printSet(std::vector<Expression> * x) {
+  void printSet(std::set<Expression> * x) {
     bool first = true;
     outs() << "{";
 
-    for (std::vector<Expression>::iterator it=x->begin(), iend=x->end(); it!=iend; ++it) {
+    for (std::set<Expression>::iterator it=x->begin(), iend=x->end(); it!=iend; ++it) {
       if (!first) {
         outs() << ", ";
       }
@@ -108,7 +131,7 @@ namespace llvm {
   // 'the LLVM way', especially since we're using std::string.
   // I encourage you to think of a way to make this code nicer
   // and let me know :)
-  std::string getShortValueName(Value * v) {
+  std::string getShortValueName(const Value * v) {
     if (v->getName().str().length() > 0) {
       return "%" + v->getName().str();
     }
@@ -126,7 +149,7 @@ namespace llvm {
 	      return "\"" + inst + "\"";
       }
     }
-    else if (ConstantInt * cint = dyn_cast<ConstantInt>(v)) {
+    else if (const ConstantInt * cint = dyn_cast<ConstantInt>(v)) {
       std::string s = "";
       raw_string_ostream * strm = new raw_string_ostream(s);
       cint->getValue().print(*strm,true);

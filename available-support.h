@@ -8,6 +8,8 @@
 
 #include <string>
 #include <vector>
+#include <set>
+#include <map>
 
 #include "llvm/IR/Function.h"
 #include "llvm/IR/Instruction.h"
@@ -17,20 +19,24 @@
 #include "llvm/Support/raw_ostream.h"
 
 namespace llvm {
-  std::string getShortValueName(Value * v);
+  std::string getShortValueName(const Value * v);
 
   class Expression {
   public:
     Value * v1;
     Value * v2;
     Instruction::BinaryOps op;
+    Expression () {}
     Expression (Instruction * I);
+    Expression (const Expression& e);
+    Expression& operator = (const Expression &e); 
     bool operator== (const Expression &e2) const;
     bool operator< (const Expression &e2) const;
     std::string toString() const;
+    bool uses(const Value* v) const;
   };
 
-  void printSet(std::vector<Expression> * x);
+  void printSet(std::set<Expression> * x);
 }
 
 #endif
