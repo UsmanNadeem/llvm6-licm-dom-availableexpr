@@ -1,7 +1,8 @@
 INC=-I/usr/lib/llvm-6.0/include/
-all: liveness.so available.so
+all: licm.so dominator.so
 
-CXXFLAGS = -rdynamic $(shell llvm-config --cxxflags) $(INC) -g -O0
+CXX = clang
+CXXFLAGS = -rdynamic $(shell llvm-config --cxxflags) $(INC) -fPIC -g -O0
 
 dataflow.o: dataflow.cpp dataflow.h
 
