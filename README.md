@@ -1,8 +1,8 @@
-Loop Invariant Code Motion pass for LLVM 6
+Loop Invariant Code Motion, Dominator Analysis and Available expressions pass for LLVM 6
 ==========================================
 
 Run `make clean && make` to compile the dominator analysis pass and the licm pass.
-
+Do the same in the `availableExpressions/` folder. Both passes are independent. 
 
 ### Compile and instrument the first test case
 
